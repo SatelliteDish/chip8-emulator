@@ -1,5 +1,9 @@
 mod renderer;
 use renderer::Renderer;
+
+mod cpu;
+use cpu::Cpu;
+
 use std::error::Error;
 
 use sdl2::event::Event;
@@ -29,48 +33,12 @@ impl Chip8Error {
 
 pub struct Point { x: i32, y: i32 }
 
-struct Stack {
-    stack: Vec<u8>
-}
-
-impl Stack {
-    pub fn new() -> Self {
-        Stack {
-            stack: Vec::new()
-        }
-    }
-
-    pub fn push(&mut self, item: u8) -> Result <(), Box<dyn Error>> {
-        if self.stack.len() >= 64 {
-            Err(Box::new(Chip8Error::new("Stack Overflow".to_string())))
-        } else {
-            self.stack.push(item);
-            Ok(())
-        }
-    }
-
-    pub fn pop(&mut self) -> Option<u8> {
-        if self.stack.is_empty() {
-            None
-        } else {
-            Some(self.stack.remove(0))
-        }
-    }
-
-    pub fn peek(&self) -> Option<&u8> {
-        if self.stack.is_empty() {
-            None
-        } else {
-            Some(&self.stack[0])
-        }
-    }
-}
 
 pub struct Chip8 {
     screen: Vec<Vec<bool>>,
     context: Sdl,
     renderer: Renderer,
-    stack: Stack,
+    cpu: Cpu,
     pointer: usize,
     heap: Vec<u8>,
 }
@@ -106,13 +74,15 @@ impl Chip8 {
             screen: vec![vec![false; 64]; 32],
             renderer: Renderer::new( window, pixel_size ).unwrap(),
             context: sdl_context,
-            stack: Stack::new(),
+            cpu: Cpu::new(),
             pointer: 0,
             heap: vec![0;4096]
         }
     }
 
     fn fetch(&mut self) -> (u8, u8) {
+        //I did this while really tired, that definitely not what this is supposed to do haha, I'll
+        //read the spec more carefully and fix it soon
         let res = (self.heap[self.pointer], self.heap[self.pointer + 1]);
         self.pointer += 2;
         res
